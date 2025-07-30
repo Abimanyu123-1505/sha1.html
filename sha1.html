@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SHA-1 Hash Generator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: linear-gradient(-45deg, #2c3e50, #4ca1af, #2980b9, #2ecc71);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .container {
+      background: linear-gradient(-180deg,#ffffffcc,grey)
+      ;
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      transition: all 0.3s ease;
+      animation: fadeIn 1s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      color: #222;
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 26px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: all 0.3s;
+      background-color: #f9f9f9;
+    }
+
+    textarea:focus, input[type="text"]:focus {
+      border-color: #4a90e2;
+      outline: none;
+      background-color: #fff;
+    }
+
+    button {
+      background-color: #4a90e2;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      width: 100%;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      background-color: #357ab8;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .copy-btn {
+      background-color: #6c757d;
+      margin-top: 10px;
+    }
+
+    .copy-btn:hover {
+      background-color: #5a6268;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      word-break: break-all;
+      background: #eef2f3;
+      border: 1px solid #ddd;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #28a745;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.4s ease;
+      z-index: 999;
+    }
+
+    .notification.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SHA-1 Hash Generator</h1>
+
+    <div class="input-group">
+      <label for="inputText">Enter text to hash:</label>
+      <textarea id="inputText" placeholder="Type or paste your text here..."></textarea>
+    </div>
+
+    <button id="hashBtn">Generate SHA-1 Hash</button>
+
+    <div class="input-group" style="margin-top: 30px;">
+      <label for="hashResult">SHA-1 Hash Result:</label>
+      <input type="text" id="hashResult" readonly>
+      <button id="copyBtn" class="copy-btn">Copy to Clipboard</button>
+    </div>
+  </div>
+
+  <div id="notification" class="notification">Copied to clipboard!</div>
+
+  <script>
+    // SHA-1 implementation
+    function sha1(input) {
+      function rotate_left(n, s) {
+        return (n << s) | (n >>> (32 - s));
+      }
+
+      function cvt_hex(val) {
+        let str = '';
+        for (let i = 7; i >= 0; i--) {
+          str += ((val >>> (i * 4)) & 0x0f).toString(16);
+        }
+        return str;
+      }
+
+      let blockstart;
+      let i, j;
+      const W = new Array(80);
+      let H0 = 0x67452301;
+      let H1 = 0xEFCDAB89;
+      let H2 = 0x98BADCFE;
+      let H3 = 0x10325476;
+      let H4 = 0xC3D2E1F0;
+      let A, B, C, D, E;
+      let temp;
+
+      input = unescape(encodeURIComponent(input));
+      const input_len = input.length;
+      const word_array = [];
+
+      for (i = 0; i < input_len - 3; i += 4) {
+        j = input.charCodeAt(i) << 24 | input.charCodeAt(i + 1) << 16 |
+          input.charCodeAt(i + 2) << 8 | input.charCodeAt(i + 3);
+        word_array.push(j);
+      }
+
+      switch (input_len % 4) {
+        case 0: i = 0x080000000; break;
+        case 1: i = input.charCodeAt(input_len - 1) << 24 | 0x0800000; break;
+        case 2: i = input.charCodeAt(input_len - 2) << 24 | input.charCodeAt(input_len - 1) << 16 | 0x08000; break;
+        case 3: i = input.charCodeAt(input_len - 3) << 24 | input.charCodeAt(input_len - 2) << 16 |
+                     input.charCodeAt(input_len - 1) << 8 | 0x80; break;
+      }
+
+      word_array.push(i);
+
+      while ((word_array.length % 16) !== 14) word_array.push(0);
+
+      word_array.push(input_len >>> 29);
+      word_array.push((input_len << 3) & 0x0ffffffff);
+
+      for (blockstart = 0; blockstart < word_array.length; blockstart += 16) {
+        for (i = 0; i < 16; i++) W[i] = word_array[blockstart + i];
+        for (i = 16; i <= 79; i++) {
+          W[i] = rotate_left(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16], 1);
+        }
+
+        A = H0; B = H1; C = H2; D = H3; E = H4;
+
+        for (i = 0; i <= 19; i++) {
+          temp = (rotate_left(A, 5) + ((B & C) | (~B & D)) + E + W[i] + 0x5A827999) & 0x0ffffffff;
+          E = D; D = C; C = rotate_left(B, 30); B = A; A = temp;
+        }
+
+        for (i = 20; i <= 39; i++) {
+          temp = (rotate_left(A, 5) + (B ^ C ^ D) + E + W[i] + 0x6ED9EBA1) & 0x0ffffffff;
+          E = D; D = C; C = rotate_left(B, 30); B = A; A = temp;
+        }
+
+        for (i = 40; i <= 59; i++) {
+          temp = (rotate_left(A, 5) + ((B & C) | (B & D) | (C & D)) + E + W[i] + 0x8F1BBCDC) & 0x0ffffffff;
+          E = D; D = C; C = rotate_left(B, 30); B = A; A = temp;
+        }
+
+        for (i = 60; i <= 79; i++) {
+          temp = (rotate_left(A, 5) + (B ^ C ^ D) + E + W[i] + 0xCA62C1D6) & 0x0ffffffff;
+          E = D; D = C; C = rotate_left(B, 30); B = A; A = temp;
+        }
+
+        H0 = (H0 + A) & 0x0ffffffff;
+        H1 = (H1 + B) & 0x0ffffffff;
+        H2 = (H2 + C) & 0x0ffffffff;
+        H3 = (H3 + D) & 0x0ffffffff;
+        H4 = (H4 + E) & 0x0ffffffff;
+      }
+
+      return cvt_hex(H0) + cvt_hex(H1) + cvt_hex(H2) + cvt_hex(H3) + cvt_hex(H4);
+    }
+
+    // DOM Events
+    const hashBtn = document.getElementById('hashBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const inputText = document.getElementById('inputText');
+    const hashResult = document.getElementById('hashResult');
+    const notification = document.getElementById('notification');
+
+    hashBtn.addEventListener('click', () => {
+      const text = inputText.value.trim();
+      if (text === '') {
+        alert('Please enter some text to hash');
+        return;
+      }
+      const hashed = sha1(text);
+      hashResult.value = hashed;
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (hashResult.value.trim() === '') {
+        alert('No hash to copy');
+        return;
+      }
+      hashResult.select();
+      document.execCommand('copy');
+      notification.classList.add('show');
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 2000);
+    });
+  </script>
+</body>
+</html>
